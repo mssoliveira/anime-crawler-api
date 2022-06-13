@@ -16,9 +16,7 @@ exports.list_all = function (res) {
 			});
 			return;
 		}
-
 		console.log(new Date().getTime());
-
 		var array = [];
 		var $ = cheerio.load(body);
 		$('.generosPagContainer')
