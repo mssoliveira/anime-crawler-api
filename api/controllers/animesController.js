@@ -25,7 +25,11 @@ exports.list_all = function (req, res) {
 
 		$el.find('a').each(function (index, el) {
 			arr.push({
-				title: $(this).text().trim(),
+				title: $(this)
+					.text()
+					.replace(/\n/g, ' ')
+					.replace(/\s{2,}/g, ' ')
+					.trim(),
 				slug: $(this)
 					.attr('href')
 					.split('/')
@@ -42,11 +46,48 @@ exports.list_all = function (req, res) {
 	});
 };
 
+exports.findByName = function (req, res) {
+	var name = req.params.name;
+	var url = `${settings.base_path}/?s=${name}`;
+
+	request(url, reqOptions, function (error, response, body) {
+		if (response.statusCode !== 200 || error) {
+			res.json({
+				err: true,
+				msg: 'Não foi possível carregar os animes.',
+			});
+			return;
+		}
+
+		var $ = cheerio.load(body);
+		var arr = [];
+		var $el = $('.searchPagContainer');
+
+		$el.find('a').each(function (index, el) {
+			arr.push({
+				title: $(this)
+					.text()
+					.replace(/\n/g, ' ')
+					.replace(/\s{2,}/g, ' ')
+					.trim(),
+				slug: $(this)
+					.attr('href')
+					.split('/')
+					.filter(String)
+					.slice(-1)
+					.pop(),
+			});
+		});
+
+		res.json({
+			animes: arr,
+		});
+	});
+};
+
 exports.detail = function (req, res) {
 	var slug = req.params.slug || '';
 	var url = settings.base_path + '/' + slug;
-
-  console.log(url);
 
 	request(url, reqOptions, function (error, response, body) {
 		if (response.statusCode !== 200 || error) {
@@ -60,36 +101,47 @@ exports.detail = function (req, res) {
 		var $ = cheerio.load(body);
 		var arr = false;
 
-		if (!$('#wrapper .list-group-item').length) {
-			arr = {
-				lastPageEpisodes: $('.pagination')
-					.eq(1)
-					.find('ul li:last-child a')
-					.attr('href')
-					.split('/')
-					.filter(String)
-					.slice(-1)
-					.pop(),
-				image: $('[property="og:image"]').attr('content'),
-				year: $('[itemprop="copyrightYear"]').text(),
-				episodes: $('[itemprop="numberofEpisodes"]').text(),
-				author: $('[itemprop="author"]').text(),
-				description: $('[itemprop="description"]').text().trim(),
-				categories: [],
-			};
+		if ($('.pagAniContainer #anime').length) {
+			var arrayData = [];
+			$('.boxAnimeSobreLinha').text(function (index, item) {
+				const format = item.split(':')[0];
+				const data = item.split(':')[1];
 
-			$('[itemprop="genre"] a').each(function (i, el) {
-				arr.categories.push({
-					name: $(el).text().trim(),
-					slug: $(el)
-						.attr('href')
-						.trim()
-						.split('/')
-						.filter(String)
-						.slice(-1)
-						.pop(),
-				});
+				const formartData = {
+					id: format.replace(/\n/g, ''),
+					data: data.trim(),
+				};
+
+				arrayData.push(formartData);
 			});
+
+			const format = arrayData[0].data;
+			const genre = arrayData[1].data;
+			const author = arrayData[2].data;
+			const director = arrayData[3].data;
+			const studio = arrayData[4].data;
+			const episodeType = arrayData[5].data;
+			const episodes = arrayData[6].data;
+			const ovas = arrayData[7].data;
+			const movies = arrayData[8].data;
+			const launchDay = arrayData[10].data;
+			const year = arrayData[11].data;
+
+			arr = {
+				image: $('[property="og:image"]').attr('content'),
+				description: $('#sinopse2').text().trim(),
+				year,
+				format,
+				episodes,
+				author,
+				director,
+				studio,
+				episodeType,
+				ovas,
+				movies,
+				launchDay,
+				categories: [genre],
+			};
 		}
 
 		res.json({

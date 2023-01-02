@@ -7,7 +7,8 @@ module.exports = function (app) {
 	//Categories
 	app.route('/category').get(categories.list_all);
 	//Animes
-	app.route('/anime/:page?').get(animes.list_all);
+	app.route('/anime/:page').get(animes.list_all);
+	app.route('/animebyname/:name').get(animes.findByName);
 	app.route('/anime/detail/:slug').get(animes.detail);
 	app.route('/anime/episodes/:slug/:page?').get(animes.episodes);
 	//Episódios
